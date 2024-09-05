@@ -1,4 +1,4 @@
-import requests,pdb,time,datetime,re
+import requests,pdb,time,datetime,re,icalendar
 from bs4 import BeautifulSoup
 def showCookies(cookies):
     for cookie in cookies:
@@ -75,18 +75,18 @@ def postHedersLoggedin(cookies,payload):
     }
     return headers2
 
-class ICalender:
+class ICalendar:
     mainICS = ''
-    termStartDate = datetime.datetime(2024,9,2)
+    termStartDate = datetime.datetime(2024,9,2)        # you should put the date of first Monday of one term
     def getFormatedTime(self, week, day):
         # week starts from 1, day is between 0 and 6 
-        target_time = self.termStartDate + datetime.timedelta(weeks=week - 1, days=day - 1)
+        target_time = self.termStartDate + datetime.timedelta(weeks=week - 1, days=day)
         return target_time.strftime("%Y%m%d")
     
     def getClassTime(self,section, schoolTime):
         section_long = [['080000','093500'], ['095500','122000'], ['140000','153500'],['155500','173000'],['190000','212500']]
         section_sort = [['080000','093500'], ['095500','113000'], ['140000','153500'],['155500','173000'],['190000','203000']]
-        if (section == '2' and schoolTime == '03') or (section == '5' and schoolTime == '10'):
+        if (section == 2 and schoolTime == '04') or (section == 5 and schoolTime == '11'):
             return section_sort[section - 1]
         else : 
             return section_long[section - 1]
@@ -94,10 +94,11 @@ class ICalender:
     def addClassEvent(self, className, week, day , section, schoolTime, location, classAndTeacher):
         st, ed = self.getClassTime(section, schoolTime)
         event = f'''BEGIN:VEVENT
-DTSTART:{self.getFormatedTime(week, day)}T{st}Z
-DTEND:{self.getFormatedTime(week, day)}T{ed}Z
+DTSTART:{self.getFormatedTime(week, day)}T{st}
+DTEND:{self.getFormatedTime(week, day)}T{ed}
 DESCRIPTION:{classAndTeacher}
 LOCATION:{location}
+STATUS:CONFIRMED
 SUMMARY:{className}
 END:VEVENT
 '''
@@ -106,17 +107,19 @@ END:VEVENT
     
 
     def exportResult(self):
-        st = '''BEGIN:VCALENDAR 
-VERSION:2.0 
-CALSCALE:GREGORIAN 
-METHOD:PUBLISH 
+        st = '''BEGIN:VCALENDAR
+PRODID:-//Google Inc//Google Calendar 70.9054//EN
+VERSION:2.0
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+X-WR-CALNAME:zhangzhe197109@gmail.com
 X-WR-TIMEZONE:Asia/Shanghai
 '''
         ed = 'END:VCALENDAR'
         return st + self.mainICS + ed
         
-username = '*****************'
-password = '*****************'  
+username = '*******************'
+password = '*******************' #put your username and password here  
 with requests.session() as session:
     #============================================================================
     # First Request to get execution code
@@ -155,7 +158,7 @@ with requests.session() as session:
 
 
 
-    calender = ICalender()
+    calender = ICalendar()
 
 # get classtable for every week 
     for week in range(1, 21):
@@ -172,12 +175,11 @@ with requests.session() as session:
                     content = td.find_all('font')
                     className = content[0].find_all("br")[0].previous_sibling
                     pattern = r"\[(\d+)-(\d+)节\]"
-                    schoolTime = re.findall(pattern,td.text)[0][0]
+                    schoolTime = re.findall(pattern,td.text)[0][1]
                     location = td.find_all('font', {'title': '教室'})[0].text
                     classAndTeacher = td.find_all('font', {'title': '教师'})[0].text
                     calender.addClassEvent(className, week, day , section, schoolTime, location, classAndTeacher)
 
-                    # debug
                     # print(f"section = {section} day = {day} \n {calender.mainICS}" )
                     # pdb.set_trace()
                 except: 
@@ -188,4 +190,3 @@ with requests.session() as session:
 
 
     
-
