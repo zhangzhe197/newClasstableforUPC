@@ -4,7 +4,7 @@ import re,math
 class ICalendar:
     mainICS = ''
     #这里输入这个学期的第一周的第一个星期一的具体日期
-    termStartDate = datetime.datetime(2025,2,24)        # you should put the date of first Monday of one term
+    termStartDate = datetime.datetime(2025,2,23)        # you should put the date of first Sunday of one term, which is the first day of the week
     def getFormatedTime(self, week, day):
         # week starts from 1, day is between 0 and 6 
         target_time = self.termStartDate + datetime.timedelta(weeks=week - 1, days=day)
@@ -92,7 +92,7 @@ def processDF(df: pd.DataFrame):
                 classlist = data.split("\n\n")
                 for item in classlist:
                     if not item.isspace():
-                        coures = Course(item, weekday, section - 1 )
+                        coures = Course(item, (weekday + 1) % 7, section - 1 )
                         coures.sendToCalendar()
             else :pass
 calendar = ICalendar()                                  
